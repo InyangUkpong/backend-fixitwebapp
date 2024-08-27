@@ -1,9 +1,10 @@
 // import mongoose from 'mongoose';
 const mongoose = require('mongoose');
 
-// const dBuri = 'mongodb://localhost:27017/fixitwebapp';
+// Defining the MongoDB URI
 const dBuri = 'mongodb+srv://inyangweb:eMmjuX6r0sFan6Ee@fixitwebapp.zq4ql.mongodb.net/';
 
+// Function to connect to MongoDB
 const connectDB = async () => {
     try {
         await mongoose.connect('dBuri', {
