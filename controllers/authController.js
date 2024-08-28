@@ -1,38 +1,25 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jwt');
-const User = require('../models/User');
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
-// Register user
-exports.register = async (req, res) => {
+const { genSalt, hash, compare } = bcrypt;
+
+export async function register(req, res) {
     const { name, email, password } = req.body;
 
     try {
-        // Check if user already exists
         const user = await User.findOne({ email });
         if (user) {
             return res.status(400).json({ msg: 'User already exists' });
         }
 
-        // Create new user
-        const newUser = new User({ 
-            name, 
-            email, 
-            password 
-        });
+        const newUser = new User({ name, email, password });
+        const salt = await genSalt(10);
+        newUser.password = await hash(password, salt);
 
-        // Encrypt password
-        const salt = await bcrypt.genSalt(10);
-        newUser.password = await bcrypt.hash(password, salt);
-
-        // Save user to database
         await newUser.save();
 
-        // Return jsonwebtoken
-        const payload = { 
-            user: { 
-                id: newUser.id 
-            } 
-        };
+        const payload = { user: { id: newUser.id } };
 
         jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: 3600 }, (err, token) => {
             if (err) throw err;
@@ -42,26 +29,25 @@ exports.register = async (req, res) => {
         console.error(error.message);
         res.status(500).send('Server Error');
     }
-};
+}
 
-// Authenticate user
-exports.login = async (req, res) => {
-    const {email, password} = req.body;
+export async function login(req, res) {
+    const { email, password } = req.body;
 
     try {
-        //check if user exists
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ msg: 'User not found' });
         }
 
-        // Return JSON Web Token
-        const payload = {
-            user: {
-                id: user.id,
-            },
-        };
-        jwt.sign(payload, 'your_jwt_secret', { expiresIn: 3600 }, (err, token) => {
+        const isMatch = await compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ msg: 'Invalid credentials' });
+        }
+
+        const payload = { user: { id: user.id } };
+
+        jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: 3600 }, (err, token) => {
             if (err) throw err;
             res.json({ token });
         });
@@ -69,4 +55,4 @@ exports.login = async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
-};
+}

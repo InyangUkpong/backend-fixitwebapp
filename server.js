@@ -1,29 +1,32 @@
-// import express from 'express';
-// import dotenv from "dotenv";
-// import connectDB from "./config/db.js";
-const express = require('express');
-const connectDB = require('./config/db');
-const dotenv = require('dotenv');
+import express from 'express';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+
 dotenv.config();
 
-
 const app = express();
-connectDB();
-app.use(express.json()); // For Parsing application/json
+app.use(express.json());
 
 // Define routes
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
+// Database connection
 const PORT = process.env.PORT || 8080;
+const MONGO_URI = process.env.MONGO_URI;
+console.log(`MongoDB URI: ${MONGO_URI}`); // Debugging line to check if the URI is correct
 
-// let me create a simple route below
-app.get("/", (req, res) => {
-    res.json({message: "The FixIt App is running on docker container version 3"})
-});
-// let me listen to the port below
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
-
-
-
+mongoose.connect(MONGO_URI)
+    .then(() => {
+        console.log('Connected to MongoDB');
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    })
+    .catch(err => {
+        console.error('Error connecting to MongoDB:', err.message);
+        console.error(err);
+        process.exit(1);
+    });
